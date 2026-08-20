@@ -1,0 +1,20 @@
+{
+  "name": "bedrock-pack-fetcher-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bedrock-protocol": "^3.40.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "overrides": {
+    "raknet-native": "file:./native-stubs/raknet-native"
+  }
+}

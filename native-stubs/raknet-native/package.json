@@ -1,0 +1,6 @@
+{
+  "name": "raknet-native",
+  "version": "1.0.3",
+  "description": "Harmless stub replacing the real native raknet-native addon, which cannot build or run on Vercel's serverless environment. bedrock-protocol is configured (see api/fetch-pack.js, raknetBackend: 'jsp-raknet') to never actually use this backend — it only needs to require() without crashing.",
+  "main": "index.js"
+}
