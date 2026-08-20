@@ -9,8 +9,8 @@
   "engines": {
     "node": ">=20"
   },
-  "dependencies": {
-    "bedrock-protocol": "^3.40.0",
+    "dependencies": {
+    "bedrock-protocol": "^3.58.2",
     "cors": "^2.8.5",
     "express": "^4.21.2"
   },
