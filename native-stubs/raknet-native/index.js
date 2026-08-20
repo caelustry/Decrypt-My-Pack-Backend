@@ -16,15 +16,28 @@ const { Client: JspClient, EncapsulatedPacket, Reliability } = require('jsp-rakn
 const PacketPriority = { IMMEDIATE_PRIORITY: 0, MEDIUM_PRIORITY: 1 };
 const PacketReliability = { RELIABLE_ORDERED: Reliability?.ReliableOrdered ?? 0 };
 
+// Temporary trace logging so we can see exactly where the flow breaks in
+// Render's Logs tab, since jsp-raknet's own internals are undocumented
+// and we can't step through this live. Prefixed for easy searching.
+const trace = (...args) => console.log('[raknet-shim]', ...args);
+
 class Client {
   constructor(host, port) {
+    trace('constructing Client for', host, port);
     this._inner = new JspClient(host, port);
     this._listeners = {};
 
-    this._inner.on('connected', () => this._emit('connect'));
-    this._inner.on('disconnect', (reason) => this._emit('disconnect', { reason }));
+    this._inner.on('connected', () => {
+      trace('inner "connected" event fired');
+      this._emit('connect');
+    });
+    this._inner.on('disconnect', (reason) => {
+      trace('inner "disconnect" event fired, reason:', reason);
+      this._emit('disconnect', { reason });
+    });
     this._inner.on('encapsulated', (encapsulated, addr) => {
       const buffer = encapsulated?.buffer ?? encapsulated;
+      trace('inner "encapsulated" event fired, bytes:', buffer?.length);
       this._emit('encapsulated', { buffer, address: addr?.hash ?? addr });
     });
   }
@@ -35,29 +48,42 @@ class Client {
   }
 
   _emit(event, ...args) {
+    trace('emitting', event);
     for (const cb of this._listeners[event] || []) cb(...args);
   }
 
   connect() {
-    Promise.resolve(this._inner.connect()).catch((err) => {
-      this._emit('disconnect', { reason: err?.message || 'connect failed' });
-    });
+    trace('connect() called');
+    Promise.resolve(this._inner.connect())
+      .then(() => trace('inner.connect() promise resolved'))
+      .catch((err) => {
+        trace('inner.connect() promise rejected:', err?.message, err?.stack);
+        this._emit('disconnect', { reason: err?.message || 'connect failed' });
+      });
   }
 
   ping() {
+    trace('ping() called');
     this._inner.ping?.((data) => this._emit('pong', { extra: data }));
   }
 
   close() {
+    trace('close() called');
     this._inner.close?.();
   }
 
   send(buffer, _priority, _reliability, _channel) {
-    const packet = new EncapsulatedPacket();
-    packet.reliability = Reliability.ReliableOrdered;
-    packet.buffer = buffer;
-    this._inner.connection?.addEncapsulatedToQueue(packet);
-    this._inner.connection?.sendQueue();
+    trace('send() called, bytes:', buffer?.length, 'connection exists:', !!this._inner.connection);
+    try {
+      const packet = new EncapsulatedPacket();
+      packet.reliability = Reliability.ReliableOrdered;
+      packet.buffer = buffer;
+      this._inner.connection?.addEncapsulatedToQueue(packet);
+      this._inner.connection?.sendQueue();
+      trace('send() completed without throwing');
+    } catch (err) {
+      trace('send() threw:', err?.message, err?.stack);
+    }
   }
 }
 
