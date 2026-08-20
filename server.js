@@ -92,7 +92,9 @@ app.get("/fetch-pack", (req, res) => {
       port: targetPort,
       username: "PackFetcher",
       offline: true,
-      version: false,
+      // No "version" key at all — omitting it (not setting it to false)
+      // is what triggers bedrock-protocol's auto-detection via ping.
+      // Explicitly passing `false` throws "Unsupported version false".
       raknetBackend: "jsp-raknet",
     });
 
