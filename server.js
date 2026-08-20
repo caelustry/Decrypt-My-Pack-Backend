@@ -71,8 +71,11 @@ app.get("/fetch-pack", (req, res) => {
   });
 
   const send = (level, text, extra) => {
+    // Check if the response is closed before writing
+    if (res.writableEnded || !res.writable) return;
+    
     res.write(`data: ${JSON.stringify({ level, text, extra, t: Date.now() })}\n\n`);
-  };
+};
 
   let client;
   let finished = false;
