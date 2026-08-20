@@ -92,9 +92,16 @@ app.get("/fetch-pack", (req, res) => {
       port: targetPort,
       username: "PackFetcher",
       offline: true,
-      // No "version" key at all — omitting it (not setting it to false)
-      // is what triggers bedrock-protocol's auto-detection via ping.
-      // Explicitly passing `false` throws "Unsupported version false".
+      // Pinning an explicit, known-supported version rather than letting
+      // bedrock-protocol auto-detect via ping. Auto-detect picked up
+      // zeqa.net's real version (1.26.40), which this library doesn't
+      // have protocol definitions for yet (see PrismarineJS/bedrock-protocol
+      // issue #758, open as of Aug 2026) — it refuses to proceed with an
+      // unrecognized version rather than risk misparsing packets.
+      // zeqa.net runs behind a WaterdogPE proxy, which typically accepts
+      // connections from a range of client versions, so requesting an
+      // older supported one here is likely to still work.
+      version: "1.21.50",
       raknetBackend: "jsp-raknet",
     });
 
