@@ -20,6 +20,21 @@ import bedrock from "bedrock-protocol";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Safety net: jsp-raknet (the RakNet backend, see native-stubs/raknet-native)
+// has known stability issues — an uncaught internal exception should not
+// take down the entire server and every in-flight request with it. This
+// logs and survives instead of crashing. Node's own docs caution that
+// process state can be "in an undefined state" after an uncaught
+// exception in general — but this server holds no shared state between
+// requests (each /fetch-pack call is self-contained), so continuing is
+// safe here specifically.
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException] survived:", err?.message, err?.stack);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[unhandledRejection] survived:", err);
+});
+
 // Restrict this to your actual Vercel domain once you know it, e.g.:
 //   origin: "https://decrypt-my-pack.vercel.app"
 // Left open for now so you can get the connection working first.
@@ -92,6 +107,13 @@ app.get("/fetch-pack", (req, res) => {
       port: targetPort,
       username: "PackFetcher",
       offline: true,
+      skipPing: true,
+      // jsp-raknet has a real bug where a delayed ping response arriving
+      // late (after we've moved on) crashes with "cb is not a function"
+      // in handleUnconnectedPong — an uncaught exception that kills the
+      // whole process. Since we already pin an explicit version below,
+      // we don't need the ping-based auto-detection step at all, so
+      // skipping it sidesteps that crash path entirely.
       // Pinning an explicit, known-supported version rather than letting
       // bedrock-protocol auto-detect via ping. Auto-detect picked up
       // zeqa.net's real version (1.26.40), which this library doesn't
