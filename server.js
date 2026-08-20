@@ -107,13 +107,12 @@ app.get("/fetch-pack", (req, res) => {
       port: targetPort,
       username: "PackFetcher",
       offline: true,
-      skipPing: true,
-      // jsp-raknet has a real bug where a delayed ping response arriving
-      // late (after we've moved on) crashes with "cb is not a function"
-      // in handleUnconnectedPong — an uncaught exception that kills the
-      // whole process. Since we already pin an explicit version below,
-      // we don't need the ping-based auto-detection step at all, so
-      // skipping it sidesteps that crash path entirely.
+      // Reverted skipPing: with it enabled, bedrock-protocol never even
+      // reached our RakNet wrapper's constructor (no trace at all before
+      // an immediate close) — it needs the ping step for something else
+      // internally even with an explicit version pinned. The uncaught
+      // exception safety net above handles the jsp-raknet ping-callback
+      // crash bug instead, which is the actual problem we needed to solve.
       // Pinning an explicit, known-supported version rather than letting
       // bedrock-protocol auto-detect via ping. Auto-detect picked up
       // zeqa.net's real version (1.26.40), which this library doesn't
